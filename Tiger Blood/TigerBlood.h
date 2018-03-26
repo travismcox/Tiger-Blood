@@ -9,6 +9,10 @@
 #ifndef TigerBlood_h
 #define TigerBlood_h
 
+#include <vector>
+
+using namespace std;
+
 enum Color_t {RED, BLUE};
 
 struct Point_t{
@@ -16,8 +20,8 @@ struct Point_t{
 };
 
 struct Token_t{
-    Color color;
-    Point location;
+    Color_t color;
+    Point_t location;
 };
 
 struct Move_t{
@@ -25,7 +29,12 @@ struct Move_t{
     Point_t destination;
 };
 
-Move_t  Move_TigerBlood(vector<Token_t>, Color_t turn);
+Move_t  Move_TigerBlood(vector<Token_t>, Color_t turn)
+{
+    Move_t tempMove;
+    
+    return tempMove;
+}
 
 /*
  * Each group will implement the Move function and
