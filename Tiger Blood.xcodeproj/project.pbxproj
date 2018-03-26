@@ -25,6 +25,7 @@
 /* Begin PBXFileReference section */
 		F8E6B3DB206957A900C9624E /* Tiger Blood */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Tiger Blood"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8E6B3DE206957A900C9624E /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		F8E6B3E5206966FE00C9624E /* TigerBlood.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TigerBlood.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				F8E6B3DE206957A900C9624E /* main.cpp */,
+				F8E6B3E5206966FE00C9624E /* TigerBlood.h */,
 			);
 			path = "Tiger Blood";
 			sourceTree = "<group>";
