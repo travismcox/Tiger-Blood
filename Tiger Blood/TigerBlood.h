@@ -574,6 +574,8 @@ void populateMatrix(AdjacencyMatrix m)
     m.matrix[88][0] = temp;
     m.matrix[79][3] = temp;
     m.matrix[87][3] = temp;
+    
+    m.populated = true;
 }
 
 Move_t  Move_TigerBlood(vector<Token_t>, Color_t turn)
