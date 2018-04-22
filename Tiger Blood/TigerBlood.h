@@ -578,7 +578,11 @@ void populateMatrix(AdjacencyMatrix m)
     m.populated = true;
 }
 
-Move_t  Move_TigerBlood(vector<Token_t>, Color_t turn)
+bool checkForCage(Token_t);
+void getAdjacentPoints(vector<Point_t> *, Point_t);
+int searchAdjacencyMatrix(Point_t, int, int);
+
+Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
 {
     Move_t tempMove;
     if(!matrix.populated)
@@ -586,8 +590,84 @@ Move_t  Move_TigerBlood(vector<Token_t>, Color_t turn)
         populateMatrix(matrix);
     }
     
+    if(turn == RED)
+    {
+        Token_t redToken;
+        vector<Token_t>::iterator tokenIterator = pieces.begin();
+        for(int i = 0; i < pieces.size(); i++)
+        {
+            if(tokenIterator->color == RED)
+            {
+                redToken = pieces[i];
+            }
+            tokenIterator.operator++();
+        }
+        
+        if(!checkForCage(redToken))
+        {
+            
+        }
+        else
+        {
+            
+        }
+    }
+    else
+    {
+        
+    }
     
     return tempMove;
+}
+
+bool checkForCage(Token_t tiger)
+{
+    Point_t tigerPosition = tiger.location;
+    
+    if(tigerPosition.row < 4)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void getAdjacentPoints(vector<Point_t> *points, Point_t me)
+{
+    
+}
+
+int searchAdjacencyMatrix(Point_t me, int min, int max)
+{
+    int halfway = (min + max) / 2;
+    if(matrix.matrix[halfway][0].col == me.col && matrix.matrix[halfway][0].row == me.row)
+    {
+        return halfway;
+    }
+    else if (matrix.matrix[halfway][0].row == me.row)
+    {
+        if(matrix.matrix[halfway][0].col < me.col)
+        {
+            return (halfway + (me.col - matrix.matrix[halfway][0].col));
+        }
+        else
+        {
+            return (halfway - (matrix.matrix[halfway][0].col - me.col));
+        }
+    }
+    else
+    {
+        if(matrix.matrix[halfway][0].row < me.row)
+        {
+            return searchAdjacencyMatrix(me, min, halfway);
+        }
+        else
+        {
+            return searchAdjacencyMatrix(me, halfway, max);
+        }
+    }
 }
 
 /*
