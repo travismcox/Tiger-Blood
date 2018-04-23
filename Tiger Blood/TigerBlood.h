@@ -33,9 +33,12 @@ struct Move_t{
 struct AdjacencyMatrix{
     Point_t matrix[89][8];
     bool populated = false;
+    bool tigerCageMovesInitialized = false;
 };
 
 AdjacencyMatrix matrix;
+int tigerCageMoves;
+const int tigerCageMax = 8;
 
 void populateMatrix(AdjacencyMatrix m)
 {
@@ -604,6 +607,11 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
     
     if(turn == RED)
     {
+        if (!matrix.tigerCageMovesInitialized)
+        {
+            tigerCageMoves = 0;
+            matrix.tigerCageMovesInitialized = true;
+        }
         Token_t redToken;
         vector<Token_t>::iterator tokenIterator = pieces.begin();
         for(int i = 0; i < pieces.size(); i++)
@@ -620,18 +628,26 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
         if(!inCage(redToken))
         {
             vector<Point_t>::iterator pointIterator = points.begin();
-            for(int i = 0; i < points.size(); i++)
+            if(tigerCageMoves >= tigerCageMax)
             {
-                if(pointIterator->row < redToken.location.row)
+                for(int i = 0; i < points.size(); i++)
                 {
-                    points.erase(pointIterator);
-                    i--;
-                }
-                else
-                {
-                    pointIterator++;
+                    if(pointIterator->row < redToken.location.row)
+                    {
+                        points.erase(pointIterator);
+                        i--;
+                    }
+                    else
+                    {
+                        pointIterator++;
+                    }
                 }
             }
+            else
+            {
+                tigerCageMoves++;
+            }
+            
             if(points.size() > 1)
             {
                 srand(time(NULL));
@@ -642,6 +658,7 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
             {
                 tempMove.destination = points[0];
             }
+            tempMove.token = redToken;
         }
         else
         {
