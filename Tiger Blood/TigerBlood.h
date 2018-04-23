@@ -10,6 +10,7 @@
 #define TigerBlood_h
 
 #include <vector>
+#include <ctime>
 
 using namespace std;
 
@@ -39,6 +40,16 @@ AdjacencyMatrix matrix;
 void populateMatrix(AdjacencyMatrix m)
 {
     Point_t temp;
+    temp.row = -1;
+    temp.col = -1;
+    for(int i = 0; i < 89; i++)
+    {
+        for(int j = 0; j < 8; j++)
+        {
+            m.matrix[i][j] = temp;
+        }
+    }
+    
     temp.row = 0;
     temp.col = 4;
     m.matrix[0][0] = temp;
@@ -578,13 +589,14 @@ void populateMatrix(AdjacencyMatrix m)
     m.populated = true;
 }
 
-bool checkForCage(Token_t);
+bool inCage(Token_t);
 void getAdjacentPoints(vector<Point_t> *, Point_t);
 int searchAdjacencyMatrix(Point_t, int, int);
 
 Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
 {
     Move_t tempMove;
+    vector<Point_t> points;
     if(!matrix.populated)
     {
         populateMatrix(matrix);
@@ -603,9 +615,33 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
             tokenIterator.operator++();
         }
         
-        if(!checkForCage(redToken))
+        getAdjacentPoints(&points, redToken.location);
+        
+        if(!inCage(redToken))
         {
-            
+            vector<Point_t>::iterator pointIterator = points.begin();
+            for(int i = 0; i < points.size(); i++)
+            {
+                if(pointIterator->row < redToken.location.row)
+                {
+                    points.erase(pointIterator);
+                    i--;
+                }
+                else
+                {
+                    pointIterator++;
+                }
+            }
+            if(points.size() > 1)
+            {
+                srand(time(NULL));
+                int choice = rand() % points.size();
+                tempMove.destination = points[choice];
+            }
+            else
+            {
+                tempMove.destination = points[0];
+            }
         }
         else
         {
@@ -620,7 +656,7 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
     return tempMove;
 }
 
-bool checkForCage(Token_t tiger)
+bool inCage(Token_t tiger)
 {
     Point_t tigerPosition = tiger.location;
     
@@ -636,7 +672,12 @@ bool checkForCage(Token_t tiger)
 
 void getAdjacentPoints(vector<Point_t> *points, Point_t me)
 {
-    
+    int adjacencyMatrixRow = searchAdjacencyMatrix(me, 0, 88), count = 1;
+    while (matrix.matrix[adjacencyMatrixRow][count].row != -1)
+    {
+        points->push_back(matrix.matrix[adjacencyMatrixRow][count]);
+        count++;
+    }
 }
 
 int searchAdjacencyMatrix(Point_t me, int min, int max)
