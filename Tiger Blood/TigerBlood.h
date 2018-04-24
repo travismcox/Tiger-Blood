@@ -597,6 +597,7 @@ void getAdjacentPoints(vector<Point_t> *, Point_t);
 int searchAdjacencyMatrix(Point_t, int, int);
 Point_t findNearestHuman(vector<Token_t>, Point_t);
 int shortestPath(Point_t, Point_t);
+void removeExtraneousPoints(vector<Point_t> *, Point_t, Point_t);
 
 Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
 {
@@ -663,8 +664,47 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
         {
             Point_t nearestHuman = findNearestHuman(pieces, redToken.location);
             int colDiff, rowDiff;
-            colDiff = abs(redToken.location.col - nearestHuman.col);
-            rowDiff = abs(redToken.location.row - nearestHuman.row);
+            colDiff = redToken.location.col - nearestHuman.col;
+            rowDiff = redToken.location.row - nearestHuman.row;
+            removeExtraneousPoints(&points, redToken.location, nearestHuman);
+            bool found = false;
+            vector<Point_t>::iterator pointIterator = points.begin();
+            for(int i = 0; i < points.size(); i++)
+            {
+                if(pointIterator->row != redToken.location.row && pointIterator->col != redToken.location.col)
+                {
+                    tempMove.destination = *pointIterator;
+                    found = true;
+                }
+                pointIterator++;
+            }
+            if (!found)
+            {
+                if(abs(colDiff) > abs(rowDiff))
+                {
+                    pointIterator = points.begin();
+                    for(int i = 0; i < points.size(); i++)
+                    {
+                        if(pointIterator->col == redToken.location.col)
+                        {
+                            tempMove.destination = *pointIterator;
+                        }
+                        pointIterator++;
+                    }
+                }
+                else
+                {
+                    pointIterator = points.begin();
+                    for(int i = 0; i < points.size(); i++)
+                    {
+                        if(pointIterator->row == redToken.location.row)
+                        {
+                            tempMove.destination = *pointIterator;
+                        }
+                        pointIterator++;
+                    }
+                }
+            }
         }
     }
     else
@@ -762,85 +802,7 @@ int shortestPath(Point_t me, Point_t destination)
     getAdjacentPoints(&adjacentPoints, me);
     int minMoves = -1, moves;
     vector<Point_t>::iterator adjacentIterator = adjacentPoints.begin();
-    for (int i = 0; i < adjacentPoints.size(); i++)
-    {
-        if(me.col < destination.col)
-        {
-            if(adjacentIterator->col < me.col)
-            {
-                adjacentPoints.erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else if (me.col > destination.col)
-        {
-            if(adjacentIterator->col > me.col)
-            {
-                adjacentPoints.erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else
-        {
-            if (adjacentIterator->col != me.col)
-            {
-                adjacentPoints.erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-    }
-    adjacentIterator = adjacentPoints.begin();
-    for (int i = 0; i < adjacentPoints.size(); i++)
-    {
-        if(me.row < destination.row)
-        {
-            if(adjacentIterator->row < me.row)
-            {
-                adjacentPoints.erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else if (me.row > destination.row)
-        {
-            if(adjacentIterator->row > me.row)
-            {
-                adjacentPoints.erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else
-        {
-            if (adjacentIterator->row != me.row)
-            {
-                adjacentPoints.erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-    }
+    removeExtraneousPoints(&adjacentPoints, me, destination);
     adjacentIterator = adjacentPoints.begin();
     for(int i = 0; i < adjacentPoints.size(); i++)
     {
@@ -853,6 +815,90 @@ int shortestPath(Point_t me, Point_t destination)
     }
     
     return 1+minMoves;
+}
+
+void removeExtraneousPoints(vector<Point_t> *adjacentPoints, Point_t me, Point_t destination)
+{
+    vector<Point_t>::iterator adjacentIterator = adjacentPoints->begin();
+    for (int i = 0; i < adjacentPoints->size(); i++)
+    {
+        if(me.col < destination.col)
+        {
+            if(adjacentIterator->col < me.col)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else if (me.col > destination.col)
+        {
+            if(adjacentIterator->col > me.col)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else
+        {
+            if (adjacentIterator->col != me.col)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+    }
+    adjacentIterator = adjacentPoints->begin();
+    for (int i = 0; i < adjacentPoints->size(); i++)
+    {
+        if(me.row < destination.row)
+        {
+            if(adjacentIterator->row < me.row)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else if (me.row > destination.row)
+        {
+            if(adjacentIterator->row > me.row)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else
+        {
+            if (adjacentIterator->row != me.row)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+    }
 }
 
 /*
