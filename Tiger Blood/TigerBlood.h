@@ -40,6 +40,497 @@ AdjacencyMatrix matrix;
 int tigerCageMoves;
 const int tigerCageMax = 8;
 
+void populateMatrix(AdjacencyMatrix);
+bool inCage(Token_t);
+void getAdjacentPoints(vector<Point_t> *, Point_t);
+int searchAdjacencyMatrix(Point_t, int, int);
+Point_t findNearestHuman(vector<Token_t>, Point_t);
+int shortestPath(Point_t, Point_t);
+void removeExtraneousPointsTiger(vector<Point_t> *, Point_t, Point_t);
+bool checkForTrapping(Point_t, vector<Token_t>);
+void getAllAvailableMoves(vector<Token_t>, vector<Move_t> *);
+bool checkIfJumpPossible(Point_t, vector<Point_t>::iterator);
+bool legalPoint(Point_t);
+
+Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
+{
+    Move_t tempMove;
+    vector<Point_t> points;
+    if(!matrix.populated)
+    {
+        populateMatrix(matrix);
+    }
+    
+    if(turn == RED)
+    {
+        if (!matrix.tigerCageMovesInitialized)
+        {
+            tigerCageMoves = 0;
+            matrix.tigerCageMovesInitialized = true;
+        }
+        Token_t redToken;
+        tempMove.token = redToken;
+        vector<Token_t>::iterator tokenIterator = pieces.begin();
+        for(int i = 0; i < pieces.size(); i++)
+        {
+            if(tokenIterator->color == RED)
+            {
+                redToken = pieces[i];
+            }
+            tokenIterator.operator++();
+        }
+        
+        getAdjacentPoints(&points, redToken.location);
+        
+        if(inCage(redToken))
+        {
+            vector<Point_t>::iterator pointIterator = points.begin();
+            if(tigerCageMoves >= tigerCageMax)
+            {
+                for(int i = 0; i < points.size(); i++)
+                {
+                    if(pointIterator->row < redToken.location.row)
+                    {
+                        points.erase(pointIterator);
+                        i--;
+                    }
+                    else
+                    {
+                        pointIterator++;
+                    }
+                }
+            }
+            tigerCageMoves++;
+            
+            if(points.size() > 1)
+            {
+                srand(time(NULL));
+                int choice = rand() % points.size();
+                tempMove.destination = points[choice];
+            }
+            else
+            {
+                tempMove.destination = points[0];
+            }
+        }
+        else
+        {
+            if(checkForTrapping(redToken.location, pieces))
+            {
+                srand(time(NULL));
+                int choice = rand() % points.size();
+                tempMove.destination = points[choice];
+            }
+            else
+            {
+                Point_t nearestHuman = findNearestHuman(pieces, redToken.location);
+                int colDiff, rowDiff;
+                colDiff = redToken.location.col - nearestHuman.col;
+                rowDiff = redToken.location.row - nearestHuman.row;
+                removeExtraneousPointsTiger(&points, redToken.location, nearestHuman);
+                bool found = false;
+                vector<Point_t>::iterator pointIterator = points.begin();
+                for(int i = 0; i < points.size(); i++)
+                {
+                    if(pointIterator->row != redToken.location.row && pointIterator->col != redToken.location.col)
+                    {
+                        tempMove.destination = *pointIterator;
+                        found = true;
+                    }
+                    pointIterator++;
+                }
+                if (!found)
+                {
+                    if(abs(colDiff) > abs(rowDiff))
+                    {
+                        pointIterator = points.begin();
+                        for(int i = 0; i < points.size(); i++)
+                        {
+                            if(pointIterator->col == redToken.location.col)
+                            {
+                                tempMove.destination = *pointIterator;
+                            }
+                            pointIterator++;
+                        }
+                    }
+                    else
+                    {
+                        pointIterator = points.begin();
+                        for(int i = 0; i < points.size(); i++)
+                        {
+                            if(pointIterator->row == redToken.location.row)
+                            {
+                                tempMove.destination = *pointIterator;
+                            }
+                            pointIterator++;
+                        }
+                    }
+                }
+            }
+        }
+            
+    }
+    else
+    {
+        vector<Token_t> blueTokens;
+        Token_t redToken;
+        vector<Move_t> blueMoves;
+        vector<Token_t>::iterator piecesIterator = pieces.begin();
+        for(int i = 0; i < pieces.size(); i++)
+        {
+            if(piecesIterator->color == BLUE)
+            {
+                blueTokens.push_back(*piecesIterator);
+            }
+            else
+            {
+                redToken = *piecesIterator;
+            }
+            piecesIterator++;
+        }
+        
+        getAllAvailableMoves(blueTokens, &blueMoves);
+    }
+    
+    return tempMove;
+}
+
+void getAllAvailableMoves(vector<Token_t> blueTokens, vector<Move_t> *blueMoves)
+{
+    vector<Token_t>::iterator blueTokenIterator1 = blueTokens.begin(), blueTokenIterator2;
+    vector<Point_t> blueAdjacentPoints;
+    vector<Point_t>::iterator adjacentIterator;
+    for(int i = 0; i < blueTokens.size(); i++)
+    {
+        getAdjacentPoints(&blueAdjacentPoints, blueTokenIterator1->location);
+        blueTokenIterator2 = blueTokens.begin();
+        for(int j = 0; j < blueTokens.size(); j++)
+        {
+            adjacentIterator = blueAdjacentPoints.begin();
+            for(int k = 0; k < blueAdjacentPoints.size(); k++)
+            {
+                if(blueTokenIterator2->location.row == adjacentIterator->row && blueTokenIterator2->location.col == adjacentIterator->col)
+                {
+                    if(checkIfJumpPossible(blueTokenIterator1->location, adjacentIterator))
+                    {
+                        blueAdjacentPoints.erase(adjacentIterator);
+                        k--;
+                    }
+                }
+                else
+                {
+                    adjacentIterator++;
+                }
+            }
+            blueTokenIterator2++;
+        }
+        blueTokenIterator1++;
+    }
+}
+
+bool checkIfJumpPossible(Point_t me, vector<Point_t>::iterator other)
+{
+    Point_t tempPoint;
+    if(me.row == other->row)
+    {
+        tempPoint.row = me.row;
+        if(me.col > other->col)
+        {
+            tempPoint.col = other->col-1;
+        }
+        else
+        {
+            tempPoint.col = other->col+1;
+        }
+    }
+    else if(me.col == other->col)
+    {
+        tempPoint.row = me.col;
+        if(me.row > other->row)
+        {
+            tempPoint.row = other->row-1;
+        }
+        else
+        {
+            tempPoint.row = other->row+1;
+        }
+    }
+    else if(me.col > other->col)
+    {
+        tempPoint.col = other->col-1;
+        if(me.row > other->row)
+        {
+            tempPoint.row = other->row-1;
+        }
+        else
+        {
+            tempPoint.row = other->row+1;
+        }
+    }
+    else
+    {
+        tempPoint.row = other->row+1;
+        if(me.col > other->col)
+        {
+            tempPoint.col = other->col-1;
+        }
+        else
+        {
+            tempPoint.col = other->col+1;
+        }
+    }
+    
+    if(legalPoint(tempPoint))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool legalPoint(Point_t tempPoint)
+{
+    if(tempPoint.row < 0 || tempPoint.row > 12 || tempPoint.col < 0 || tempPoint.col > 8)
+    {
+        return false;
+    }
+    if (tempPoint.row == 0 && tempPoint.col != 4)
+    {
+        return false;
+    }
+    if(tempPoint.row == 1 || tempPoint.row == 3)
+    {
+        if(tempPoint.col != 3 || tempPoint.col != 5)
+        {
+            return false;
+        }
+    }
+    if(tempPoint.row == 2)
+    {
+        if(tempPoint.col != 2 && tempPoint.col != 4 && tempPoint.col != 6)
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+bool inCage(Token_t tiger)
+{
+    Point_t tigerPosition = tiger.location;
+    
+    if(tigerPosition.row < 4)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool checkForTrapping(Point_t me, vector<Token_t> pieces)
+{
+    int count = 0, path;
+    vector<Token_t>::iterator piecesIterator = pieces.begin();
+    for(int i = 0; i < pieces.size(); i++)
+    {
+        if(piecesIterator->color == BLUE)
+        {
+            path = shortestPath(me, piecesIterator->location);
+            if(path <= 4)
+            {
+                count++;
+            }
+        }
+        piecesIterator++;
+    }
+    
+    if(count >= 4)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void getAdjacentPoints(vector<Point_t> *points, Point_t me)
+{
+    int adjacencyMatrixRow = searchAdjacencyMatrix(me, 0, 88), count = 1;
+    while (matrix.matrix[adjacencyMatrixRow][count].row != -1)
+    {
+        points->push_back(matrix.matrix[adjacencyMatrixRow][count]);
+        count++;
+    }
+}
+
+int searchAdjacencyMatrix(Point_t me, int min, int max)
+{
+    int halfway = (min + max) / 2;
+    if(matrix.matrix[halfway][0].col == me.col && matrix.matrix[halfway][0].row == me.row)
+    {
+        return halfway;
+    }
+    else if (matrix.matrix[halfway][0].row == me.row)
+    {
+        if(matrix.matrix[halfway][0].col < me.col)
+        {
+            return (halfway + (me.col - matrix.matrix[halfway][0].col));
+        }
+        else
+        {
+            return (halfway - (matrix.matrix[halfway][0].col - me.col));
+        }
+    }
+    else
+    {
+        if(matrix.matrix[halfway][0].row < me.row)
+        {
+            return searchAdjacencyMatrix(me, min, halfway);
+        }
+        else
+        {
+            return searchAdjacencyMatrix(me, halfway, max);
+        }
+    }
+}
+
+Point_t findNearestHuman(vector<Token_t> pieces, Point_t me)
+{
+    vector<Token_t>::iterator piecesIterator = pieces.begin();
+    int moves, min = -1;
+    Point_t nearest;
+    for (int i = 0; i < pieces.size(); i++)
+    {
+        if (piecesIterator->color == BLUE)
+        {
+            moves = shortestPath(me, piecesIterator->location);
+            if(moves < min || min == -1)
+            {
+                min = moves;
+                nearest = piecesIterator->location;
+            }
+        }
+    }
+    
+    return nearest;
+}
+
+int shortestPath(Point_t me, Point_t destination)
+{
+    if(me.row == destination.row && me.col == destination.col)
+    {
+        return 1;
+    }
+    
+    vector<Point_t> adjacentPoints;
+    getAdjacentPoints(&adjacentPoints, me);
+    int minMoves = -1, moves;
+    vector<Point_t>::iterator adjacentIterator = adjacentPoints.begin();
+    removeExtraneousPointsTiger(&adjacentPoints, me, destination);
+    adjacentIterator = adjacentPoints.begin();
+    for(int i = 0; i < adjacentPoints.size(); i++)
+    {
+        moves = shortestPath(*adjacentIterator, destination);
+        if(moves < minMoves || minMoves == -1)
+        {
+            minMoves = moves;
+        }
+        adjacentIterator++;
+    }
+    
+    return 1+minMoves;
+}
+
+void removeExtraneousPointsTiger(vector<Point_t> *adjacentPoints, Point_t me, Point_t destination)
+{
+    vector<Point_t>::iterator adjacentIterator = adjacentPoints->begin();
+    for (int i = 0; i < adjacentPoints->size(); i++)
+    {
+        if(me.col < destination.col)
+        {
+            if(adjacentIterator->col < me.col)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else if (me.col > destination.col)
+        {
+            if(adjacentIterator->col > me.col)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else
+        {
+            if (adjacentIterator->col != me.col)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+    }
+    adjacentIterator = adjacentPoints->begin();
+    for (int i = 0; i < adjacentPoints->size(); i++)
+    {
+        if(me.row < destination.row)
+        {
+            if(adjacentIterator->row < me.row)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else if (me.row > destination.row)
+        {
+            if(adjacentIterator->row > me.row)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+        else
+        {
+            if (adjacentIterator->row != me.row)
+            {
+                adjacentPoints->erase(adjacentIterator);
+                i--;
+            }
+            else
+            {
+                adjacentIterator++;
+            }
+        }
+    }
+}
+    
 void populateMatrix(AdjacencyMatrix m)
 {
     Point_t temp;
@@ -590,315 +1081,6 @@ void populateMatrix(AdjacencyMatrix m)
     m.matrix[87][3] = temp;
     
     m.populated = true;
-}
-
-bool inCage(Token_t);
-void getAdjacentPoints(vector<Point_t> *, Point_t);
-int searchAdjacencyMatrix(Point_t, int, int);
-Point_t findNearestHuman(vector<Token_t>, Point_t);
-int shortestPath(Point_t, Point_t);
-void removeExtraneousPoints(vector<Point_t> *, Point_t, Point_t);
-
-Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
-{
-    Move_t tempMove;
-    vector<Point_t> points;
-    if(!matrix.populated)
-    {
-        populateMatrix(matrix);
-    }
-    
-    if(turn == RED)
-    {
-        if (!matrix.tigerCageMovesInitialized)
-        {
-            tigerCageMoves = 0;
-            matrix.tigerCageMovesInitialized = true;
-        }
-        Token_t redToken;
-        vector<Token_t>::iterator tokenIterator = pieces.begin();
-        for(int i = 0; i < pieces.size(); i++)
-        {
-            if(tokenIterator->color == RED)
-            {
-                redToken = pieces[i];
-            }
-            tokenIterator.operator++();
-        }
-        
-        getAdjacentPoints(&points, redToken.location);
-        
-        if(inCage(redToken))
-        {
-            vector<Point_t>::iterator pointIterator = points.begin();
-            if(tigerCageMoves >= tigerCageMax)
-            {
-                for(int i = 0; i < points.size(); i++)
-                {
-                    if(pointIterator->row < redToken.location.row)
-                    {
-                        points.erase(pointIterator);
-                        i--;
-                    }
-                    else
-                    {
-                        pointIterator++;
-                    }
-                }
-            }
-            tigerCageMoves++;
-            
-            if(points.size() > 1)
-            {
-                srand(time(NULL));
-                int choice = rand() % points.size();
-                tempMove.destination = points[choice];
-            }
-            else
-            {
-                tempMove.destination = points[0];
-            }
-            tempMove.token = redToken;
-        }
-        else
-        {
-            Point_t nearestHuman = findNearestHuman(pieces, redToken.location);
-            int colDiff, rowDiff;
-            colDiff = redToken.location.col - nearestHuman.col;
-            rowDiff = redToken.location.row - nearestHuman.row;
-            removeExtraneousPoints(&points, redToken.location, nearestHuman);
-            bool found = false;
-            vector<Point_t>::iterator pointIterator = points.begin();
-            for(int i = 0; i < points.size(); i++)
-            {
-                if(pointIterator->row != redToken.location.row && pointIterator->col != redToken.location.col)
-                {
-                    tempMove.destination = *pointIterator;
-                    found = true;
-                }
-                pointIterator++;
-            }
-            if (!found)
-            {
-                if(abs(colDiff) > abs(rowDiff))
-                {
-                    pointIterator = points.begin();
-                    for(int i = 0; i < points.size(); i++)
-                    {
-                        if(pointIterator->col == redToken.location.col)
-                        {
-                            tempMove.destination = *pointIterator;
-                        }
-                        pointIterator++;
-                    }
-                }
-                else
-                {
-                    pointIterator = points.begin();
-                    for(int i = 0; i < points.size(); i++)
-                    {
-                        if(pointIterator->row == redToken.location.row)
-                        {
-                            tempMove.destination = *pointIterator;
-                        }
-                        pointIterator++;
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        
-    }
-    
-    return tempMove;
-}
-
-bool inCage(Token_t tiger)
-{
-    Point_t tigerPosition = tiger.location;
-    
-    if(tigerPosition.row < 4)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-void getAdjacentPoints(vector<Point_t> *points, Point_t me)
-{
-    int adjacencyMatrixRow = searchAdjacencyMatrix(me, 0, 88), count = 1;
-    while (matrix.matrix[adjacencyMatrixRow][count].row != -1)
-    {
-        points->push_back(matrix.matrix[adjacencyMatrixRow][count]);
-        count++;
-    }
-}
-
-int searchAdjacencyMatrix(Point_t me, int min, int max)
-{
-    int halfway = (min + max) / 2;
-    if(matrix.matrix[halfway][0].col == me.col && matrix.matrix[halfway][0].row == me.row)
-    {
-        return halfway;
-    }
-    else if (matrix.matrix[halfway][0].row == me.row)
-    {
-        if(matrix.matrix[halfway][0].col < me.col)
-        {
-            return (halfway + (me.col - matrix.matrix[halfway][0].col));
-        }
-        else
-        {
-            return (halfway - (matrix.matrix[halfway][0].col - me.col));
-        }
-    }
-    else
-    {
-        if(matrix.matrix[halfway][0].row < me.row)
-        {
-            return searchAdjacencyMatrix(me, min, halfway);
-        }
-        else
-        {
-            return searchAdjacencyMatrix(me, halfway, max);
-        }
-    }
-}
-
-Point_t findNearestHuman(vector<Token_t> pieces, Point_t me)
-{
-    vector<Token_t>::iterator piecesIterator = pieces.begin();
-    int moves, min = -1;
-    Point_t nearest;
-    for (int i = 0; i < pieces.size(); i++)
-    {
-        if (piecesIterator->color == BLUE)
-        {
-            moves = shortestPath(me, piecesIterator->location);
-            if(moves < min || min == -1)
-            {
-                min = moves;
-                nearest = piecesIterator->location;
-            }
-        }
-    }
-    
-    return nearest;
-}
-
-int shortestPath(Point_t me, Point_t destination)
-{
-    if(me.row == destination.row && me.col == destination.col)
-    {
-        return 1;
-    }
-    
-    vector<Point_t> adjacentPoints;
-    getAdjacentPoints(&adjacentPoints, me);
-    int minMoves = -1, moves;
-    vector<Point_t>::iterator adjacentIterator = adjacentPoints.begin();
-    removeExtraneousPoints(&adjacentPoints, me, destination);
-    adjacentIterator = adjacentPoints.begin();
-    for(int i = 0; i < adjacentPoints.size(); i++)
-    {
-        moves = shortestPath(*adjacentIterator, destination);
-        if(moves < minMoves || minMoves == -1)
-        {
-            minMoves = moves;
-        }
-        adjacentIterator++;
-    }
-    
-    return 1+minMoves;
-}
-
-void removeExtraneousPoints(vector<Point_t> *adjacentPoints, Point_t me, Point_t destination)
-{
-    vector<Point_t>::iterator adjacentIterator = adjacentPoints->begin();
-    for (int i = 0; i < adjacentPoints->size(); i++)
-    {
-        if(me.col < destination.col)
-        {
-            if(adjacentIterator->col < me.col)
-            {
-                adjacentPoints->erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else if (me.col > destination.col)
-        {
-            if(adjacentIterator->col > me.col)
-            {
-                adjacentPoints->erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else
-        {
-            if (adjacentIterator->col != me.col)
-            {
-                adjacentPoints->erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-    }
-    adjacentIterator = adjacentPoints->begin();
-    for (int i = 0; i < adjacentPoints->size(); i++)
-    {
-        if(me.row < destination.row)
-        {
-            if(adjacentIterator->row < me.row)
-            {
-                adjacentPoints->erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else if (me.row > destination.row)
-        {
-            if(adjacentIterator->row > me.row)
-            {
-                adjacentPoints->erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-        else
-        {
-            if (adjacentIterator->row != me.row)
-            {
-                adjacentPoints->erase(adjacentIterator);
-                i--;
-            }
-            else
-            {
-                adjacentIterator++;
-            }
-        }
-    }
 }
 
 /*
