@@ -69,7 +69,6 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
             matrix.tigerCageMovesInitialized = true;
         }
         Token_t redToken;
-        tempMove.token = redToken;
         vector<Token_t>::iterator tokenIterator = pieces.begin();
         for(int i = 0; i < pieces.size(); i++)
         {
@@ -79,6 +78,7 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
             }
             tokenIterator.operator++();
         }
+        tempMove.token = redToken;
         
         getAdjacentPoints(&points, redToken.location);
         
@@ -190,8 +190,16 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
         }
         
         getAllAvailableMoves(blueTokens, &blueMoves);
+        
+        srand(time(NULL));
+        int choice = rand() % blueMoves.size();
+        tempMove.token = blueMoves[choice].token;
+        tempMove.destination = blueMoves[choice].destination;
     }
     
+    cout << "Token color:" << tempMove.token.color;
+    cout << " at: " << tempMove.token.location.row << "," << tempMove.token.location.col;
+    cout << " to: " << tempMove.destination.row << "," << tempMove.destination.col;
     return tempMove;
 }
 
@@ -200,6 +208,7 @@ void getAllAvailableMoves(vector<Token_t> blueTokens, vector<Move_t> *blueMoves)
     vector<Token_t>::iterator blueTokenIterator1 = blueTokens.begin(), blueTokenIterator2;
     vector<Point_t> blueAdjacentPoints;
     vector<Point_t>::iterator adjacentIterator;
+    Move_t tempMove;
     for(int i = 0; i < blueTokens.size(); i++)
     {
         getAdjacentPoints(&blueAdjacentPoints, blueTokenIterator1->location);
@@ -211,10 +220,15 @@ void getAllAvailableMoves(vector<Token_t> blueTokens, vector<Move_t> *blueMoves)
             {
                 if(blueTokenIterator2->location.row == adjacentIterator->row && blueTokenIterator2->location.col == adjacentIterator->col)
                 {
-                    if(checkIfJumpPossible(blueTokenIterator1->location, adjacentIterator))
+                    if(!checkIfJumpPossible(blueTokenIterator1->location, adjacentIterator))
                     {
                         blueAdjacentPoints.erase(adjacentIterator);
                         k--;
+                    }
+                    else
+                    {
+                        tempMove.token = *blueTokenIterator1;
+                        tempMove.destination = *adjacentIterator;
                     }
                 }
                 else
@@ -224,6 +238,7 @@ void getAllAvailableMoves(vector<Token_t> blueTokens, vector<Move_t> *blueMoves)
             }
             blueTokenIterator2++;
         }
+        blueAdjacentPoints.clear();
         blueTokenIterator1++;
     }
 }
@@ -282,6 +297,8 @@ bool checkIfJumpPossible(Point_t me, vector<Point_t>::iterator other)
     
     if(legalPoint(tempPoint))
     {
+        other->row = tempPoint.row;
+        other->col = tempPoint.col;
         return true;
     }
     else
