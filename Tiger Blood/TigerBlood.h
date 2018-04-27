@@ -124,45 +124,55 @@ Move_t  Move_TigerBlood(vector<Token_t> pieces, Color_t turn)
             else
             {
                 Point_t nearestHuman = findNearestHuman(pieces, redToken.location);
-                int colDiff, rowDiff;
-                colDiff = redToken.location.col - nearestHuman.col;
-                rowDiff = redToken.location.row - nearestHuman.row;
-                removeExtraneousPointsTiger(&points, redToken.location, nearestHuman);
-                bool found = false;
-                vector<Point_t>::iterator pointIterator = points.begin();
-                for(int i = 0; i < points.size(); i++)
+                vector<Point_t> humanVector;
+                humanVector.push_back(nearestHuman);
+                vector<Point_t>::iterator humanIterator = humanVector.begin();
+                if(shortestPath(redToken.location, nearestHuman) == 1 && checkIfJumpPossible(redToken.location, humanIterator))
                 {
-                    if(pointIterator->row != redToken.location.row && pointIterator->col != redToken.location.col)
-                    {
-                        tempMove.destination = *pointIterator;
-                        found = true;
-                    }
-                    pointIterator++;
+                    tempDestination.destination = humanVector[0];
                 }
-                if (!found)
+                else
                 {
-                    if(abs(colDiff) > abs(rowDiff))
+                    int colDiff, rowDiff;
+                    colDiff = redToken.location.col - nearestHuman.col;
+                    rowDiff = redToken.location.row - nearestHuman.row;
+                    removeExtraneousPointsTiger(&points, redToken.location, nearestHuman);
+                    bool found = false;
+                    vector<Point_t>::iterator pointIterator = points.begin();
+                    for(int i = 0; i < points.size(); i++)
                     {
-                        pointIterator = points.begin();
-                        for(int i = 0; i < points.size(); i++)
+                        if(pointIterator->row != redToken.location.row && pointIterator->col != redToken.location.col)
                         {
-                            if(pointIterator->col == redToken.location.col)
-                            {
-                                tempMove.destination = *pointIterator;
-                            }
-                            pointIterator++;
+                            tempMove.destination = *pointIterator;
+                            found = true;
                         }
+                        pointIterator++;
                     }
-                    else
+                    if (!found)
                     {
-                        pointIterator = points.begin();
-                        for(int i = 0; i < points.size(); i++)
+                        if(abs(colDiff) > abs(rowDiff))
                         {
-                            if(pointIterator->row == redToken.location.row)
+                            pointIterator = points.begin();
+                            for(int i = 0; i < points.size(); i++)
                             {
-                                tempMove.destination = *pointIterator;
+                                if(pointIterator->col == redToken.location.col)
+                                {
+                                    tempMove.destination = *pointIterator;
+                                }
+                                pointIterator++;
                             }
-                            pointIterator++;
+                        }
+                        else
+                        {
+                            pointIterator = points.begin();
+                            for(int i = 0; i < points.size(); i++)
+                            {
+                                if(pointIterator->row == redToken.location.row)
+                                {
+                                    tempMove.destination = *pointIterator;
+                                }
+                                pointIterator++;
+                            }
                         }
                     }
                 }
